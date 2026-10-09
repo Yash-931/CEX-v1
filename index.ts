@@ -50,37 +50,35 @@ app.post("/order", (req, res) => {
     matchToMap = ORDERBOOK[name]?.asksMap!;
     bestPrice = ORDERBOOK[name]?.sortedAsks!;
 
-    while (bestPrice <= price) {
-      if (bestPrice.length > 0) {
-        let qtyAtBestPrice = matchToMap.get(bestPrice[0]!)!;
+    while (bestPrice.length > 0 && bestPrice[0]! <= price) {
+      let qtyAtBestPrice = matchToMap.get(bestPrice[0]!)!;
 
-        if (qtyAtBestPrice >= qty) {
-          //enough qty is available at the given price
-          qtyAtBestPrice = qtyAtBestPrice - qty;
-          qty = 0;
+      if (qtyAtBestPrice >= qty) {
+        //enough qty is available at the given price
+        qtyAtBestPrice = qtyAtBestPrice - qty;
 
-          //instant match happens
-          //deduct user's USD balance
-          userAvailableBalance = userAvailableBalance - qty * bestPrice[0]!;
+        //instant match happens
+        //deduct user's USD balance
+        userAvailableBalance = userAvailableBalance - qty * bestPrice[0]!;
 
-          //add the particular stock to user balance
-          BALANCES[userId][name]!.available += qty;
+        //add the particular stock to user balance
+        BALANCES[userId][name]!.available += qty;
+        qty = 0;
 
-          //update the orderbook
-          if (qtyAtBestPrice === 0) {
-            const isDeleted = ORDERBOOK[name]?.asksMap!.delete(bestPrice[0]!);
-            ORDERBOOK[name]!.sortedAsks! = ORDERBOOK[name]!.sortedAsks!.filter(
-              (price) => price !== bestPrice[0],
-            );
-            console.log("Deleted: " + isDeleted);
-          } else {
-            matchToMap.set(bestPrice[0]!, qtyAtBestPrice);
-          }
-
-          break;
+        //update the orderbook
+        if (qtyAtBestPrice === 0) {
+          const isDeleted = ORDERBOOK[name]?.asksMap!.delete(bestPrice[0]!);
+          ORDERBOOK[name]!.sortedAsks! = ORDERBOOK[name]!.sortedAsks!.filter(
+            (price) => price !== bestPrice[0],
+          );
+          console.log("Deleted: " + isDeleted);
+        } else {
+          matchToMap.set(bestPrice[0]!, qtyAtBestPrice);
         }
+
+        break;
       } else {
-        //nothing available so sit on the orderbook
+        
       }
     }
   }
