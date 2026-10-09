@@ -14,7 +14,7 @@ export interface BookSides {
 export type ExchangeOrderbook = Record<string, BookSides>;
 
 export interface BalanceDetail {
-  available: string;
-  locked: string;
+  available: number;
+  locked: number;
 }
 export type ExchangeBalances = Record<string, Record<string, BalanceDetail>>;
