@@ -9,10 +9,8 @@ const app = express();
 
 app.use(express.json());
 
-//BALANCES = {"user1": {usd: "", stock1: "", stock2: ""}, "user2": {}}
 const BALANCES: ExchangeBalances = {};
 
-//ORDERBOOK = { "stock1": {bids: [{qty1, price1}, {qty2, price2}], asks: []}, "stock2": {bids: [], asks: []}}
 const ORDERBOOK: ExchangeOrderbook = {};
 
 app.post("/order", (req, res) => {
