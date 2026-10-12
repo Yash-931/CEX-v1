@@ -9,9 +9,123 @@ const app = express();
 
 app.use(express.json());
 
-const BALANCES: ExchangeBalances = {};
+const BALANCES: ExchangeBalances = {
+  buyer1: {
+    USD: { available: 10000, locked: 0 },
+    BTC: { available: 0, locked: 0 },
+    ETH: { available: 0, locked: 0 },
+  },
 
-const ORDERBOOK: ExchangeOrderbook = {};
+  seller1: {
+    USD: { available: 0, locked: 0 },
+    BTC: { available: 2, locked: 2 },
+    ETH: { available: 5, locked: 5 },
+  },
+
+  seller2: {
+    USD: { available: 0, locked: 0 },
+    BTC: { available: 3, locked: 3 },
+    ETH: { available: 4, locked: 4 },
+  },
+
+  buyer2: {
+    USD: { available: 5000, locked: 0 },
+    BTC: { available: 1, locked: 0 },
+    ETH: { available: 2, locked: 0 },
+  },
+};
+
+const ORDERBOOK: ExchangeOrderbook = {
+  BTC: {
+    // Lowest ask first
+    asksMap: new Map([
+      [
+        100,
+        [
+          {
+            orderId: "s1-btc-1",
+            userId: "seller1",
+            price: 100,
+            qty: 2,
+          },
+        ],
+      ],
+      [
+        105,
+        [
+          {
+            orderId: "s2-btc-1",
+            userId: "seller2",
+            price: 105,
+            qty: 3,
+          },
+        ],
+      ],
+    ]),
+
+    // Highest bid first
+    bidsMap: new Map([
+      [
+        95,
+        [
+          {
+            orderId: "b2-btc-1",
+            userId: "buyer2",
+            price: 95,
+            qty: 1,
+          },
+        ],
+      ],
+    ]),
+
+    sortedAsks: [100, 105],
+    sortedBids: [95],
+  },
+
+  ETH: {
+    asksMap: new Map([
+      [
+        50,
+        [
+          {
+            orderId: "s1-eth-1",
+            userId: "seller1",
+            price: 50,
+            qty: 5,
+          },
+        ],
+      ],
+      [
+        55,
+        [
+          {
+            orderId: "s2-eth-1",
+            userId: "seller2",
+            price: 55,
+            qty: 4,
+          },
+        ],
+      ],
+    ]),
+
+    bidsMap: new Map([
+      [
+        48,
+        [
+          {
+            orderId: "b2-eth-1",
+            userId: "buyer2",
+            price: 48,
+            qty: 2,
+          },
+        ],
+      ],
+    ]),
+
+    sortedAsks: [50, 55],
+    sortedBids: [48],
+  },
+};
 
 app.post("/order", (req, res) => {
   const { userId } = req.body;
@@ -155,6 +269,12 @@ app.post("/order", (req, res) => {
         bidsMap.set(price, existingOrders);
       }
     }
+
+    res.status(200).json({
+      message: "Transaction success",
+      orderId: orderId,
+    });
+    return;
   }
 
   if (side === "sell") {
