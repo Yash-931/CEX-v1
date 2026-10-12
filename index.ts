@@ -15,7 +15,7 @@ const ORDERBOOK: ExchangeOrderbook = {};
 
 app.post("/order", (req, res) => {
   const { userId } = req.body;
-  let { qty, price, name, side } = req.body;
+  let { orderId, qty, price, name, side } = req.body;
   if (!qty || !price || !name || !side) {
     res.status(401).json({
       message: "Missing input params",
@@ -78,7 +78,7 @@ app.post("/order", (req, res) => {
     usdBalance.available -= price * qty;
     usdBalance.locked += price * qty;
     let remainingQty = qty;
-
+    let totalTradedValue = 0;
     while (remainingQty > 0 && bestPrice.length > 0) {
       let currentBestPrice = bestPrice[0]!;
 
@@ -96,7 +96,18 @@ app.post("/order", (req, res) => {
       let qtyAtBestPrice = restingOrder.qty;
       const tradeQty = Math.min(qtyAtBestPrice, remainingQty);
 
+      const matchedUserId = restingOrder.userId;
+      let matchedUserBalanceBook = BALANCES[matchedUserId];
+
+      if (matchedUserBalanceBook == undefined || !matchedUserBalanceBook) {
+        res.status(400).json({
+          message: "Matched user balance not found",
+        });
+        return;
+      }
+
       const tradeValue = tradeQty * currentBestPrice;
+      totalTradedValue += tradeValue;
 
       remainingQty -= tradeQty;
       const remainingAtLevel = qtyAtBestPrice - tradeQty;
@@ -111,16 +122,6 @@ app.post("/order", (req, res) => {
         restingOrder.qty = remainingAtLevel;
       }
 
-      const matchedUserId = restingOrder.userId;
-      let matchedUserBalanceBook = BALANCES[matchedUserId];
-
-      if (matchedUserBalanceBook == undefined || !matchedUserBalanceBook) {
-        res.status(400).json({
-          message: "Matched user balance not found",
-        });
-        return;
-      }
-
       usdBalance.locked -= tradeValue;
       userBalanceBook[name]!.available += tradeQty;
 
@@ -128,18 +129,30 @@ app.post("/order", (req, res) => {
       matchedUserBalanceBook["USD"]!.available += tradeValue;
     }
 
-    //TODO LEFT: insert a resting order here instead of old version
+    const filledQty = qty - remainingQty;
+    const excessReservation = filledQty * price - totalTradedValue;
+
+    usdBalance.locked -= excessReservation;
+    usdBalance.available += excessReservation;
+
     if (remainingQty > 0) {
       const bidsMap = ORDERBOOK[name]?.bidsMap!;
       const sortedBids = ORDERBOOK[name]?.sortedBids!;
       //sit on the orderbook
-      let existingOrder = bidsMap.get(price);
-      if (existingOrder == undefined) {
-        bidsMap.set(price, remainingQty);
+      let existingOrders = bidsMap.get(price);
+      const newOrder: RestingOrder = {
+        orderId: orderId,
+        price: price,
+        userId: userId,
+        qty: remainingQty,
+      };
+      if (existingOrders == undefined || existingOrders.length <= 0) {
+        bidsMap.set(price, [newOrder]);
         sortedBids.push(price);
         sortedBids.sort((a, b) => b - a);
       } else {
-        bidsMap.set(price, existingOrder + remainingQty);
+        existingOrders.push(newOrder);
+        bidsMap.set(price, existingOrders);
       }
     }
   }

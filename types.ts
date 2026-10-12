@@ -11,7 +11,7 @@ export interface RestingOrder {
 }
 
 export interface BookSides {
-  bidsMap: Map<number, RestingOrder[]>; //price -> qty for quick insert/delete
+  bidsMap: Map<number, RestingOrder[]>; //price -> Resting order for quick insert/delete
   asksMap: Map<number, RestingOrder[]>;
 
   sortedBids: number[];
