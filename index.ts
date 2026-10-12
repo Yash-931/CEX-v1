@@ -1,4 +1,4 @@
-import express from "express";
+import express, { json } from "express";
 import type { ExchangeBalances, ExchangeOrderbook } from "./types";
 
 const app = express();
@@ -49,43 +49,58 @@ app.post("/order", (req, res) => {
   if (side === "buy") {
     matchToMap = ORDERBOOK[name]?.asksMap!;
     bestPrice = ORDERBOOK[name]?.sortedAsks!;
+    if(!matchToMap || !bestPrice) {
+      res.status(401).json({
+        message: 'Invalid orderbook state'
+      })
+      return
+    }
 
-    while (bestPrice.length > 0 && bestPrice[0]! <= price) {
-      let qtyAtBestPrice = matchToMap.get(bestPrice[0]!)!;
+    let remainingQty = qty
 
-      if (qtyAtBestPrice >= qty) {
-        //enough qty is available at the given price
-        qtyAtBestPrice = qtyAtBestPrice - qty;
+    while(remainingQty > 0 && bestPrice.length > 0) {
+      let currentBestPrice = bestPrice[0]!;
 
-        //instant match happens
-        //deduct user's USD balance
-        userAvailableBalance = userAvailableBalance - qty * bestPrice[0]!;
+      if(currentBestPrice > price) {
+        //cant match
+        break
+      }
+      let qtyAtBestPrice = matchToMap.get(currentBestPrice)
 
-        //add the particular stock to user balance
-        BALANCES[userId][name]!.available += qty;
-        qty = 0;
+      if(qtyAtBestPrice == undefined || qtyAtBestPrice <= 0) {
+        throw new Error('Invalid state of the orderbook')
+      }
 
-        //update the orderbook
-        if (qtyAtBestPrice === 0) {
-          const isDeleted = ORDERBOOK[name]?.asksMap!.delete(bestPrice[0]!);
-          ORDERBOOK[name]!.sortedAsks! = ORDERBOOK[name]!.sortedAsks!.filter(
-            (price) => price !== bestPrice[0],
-          );
-          console.log("Deleted: " + isDeleted);
-        } else {
-          matchToMap.set(bestPrice[0]!, qtyAtBestPrice);
-        }
+      const tradeQty = Math.min(qtyAtBestPrice, remainingQty)
 
-        break;
+      const tradeValue = tradeQty * currentBestPrice 
+
+      remainingQty -= tradeQty
+      const remainingAtLevel = qtyAtBestPrice - tradeQty
+
+      if(remainingAtLevel === 0) {
+        matchToMap.delete(currentBestPrice)
+        bestPrice.shift()
       } else {
-        
+        matchToMap.set(currentBestPrice, remainingAtLevel)
+      }
+
+      //TODO: update the balanes of both users user
+    }
+
+    if(remainingQty > 0) {
+      //sit on the orderbook
+      let existingOrder = matchToMap.get(price)
+      if(existingOrder == undefined) {
+        matchToMap.set(price, remainingQty)
+      } else {
+        matchToMap.set(price, existingOrder + remainingQty)
       }
     }
   }
 
   if (side === "sell") {
-    matchToMap = ORDERBOOK[name]?.bidsMap!;
-    bestPrice = ORDERBOOK[name]?.sortedBids!;
+    //TODO
   }
 });
 
