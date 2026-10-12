@@ -111,23 +111,22 @@ app.post("/order", (req, res) => {
         restingOrder.qty = remainingAtLevel;
       }
 
-      const matchedUserId = restingOrder.userId
-      let matchedUserBalanceBook = BALANCES[matchedUserId]
+      const matchedUserId = restingOrder.userId;
+      let matchedUserBalanceBook = BALANCES[matchedUserId];
 
-      if(matchedUserBalanceBook == undefined || !matchedUserBalanceBook){
+      if (matchedUserBalanceBook == undefined || !matchedUserBalanceBook) {
         res.status(400).json({
-          message: "Matched user balance not found"
-        })
-        return
+          message: "Matched user balance not found",
+        });
+        return;
       }
 
-      usdBalance.locked -= tradeValue
-      userBalanceBook[name]!.available += tradeQty
+      usdBalance.locked -= tradeValue;
+      userBalanceBook[name]!.available += tradeQty;
 
-      matchedUserBalanceBook[name]!.locked -= tradeQty
-      matchedUserBalanceBook["USD"]!.available += tradeValue
+      matchedUserBalanceBook[name]!.locked -= tradeQty;
+      matchedUserBalanceBook["USD"]!.available += tradeValue;
     }
-
 
     //TODO LEFT: insert a resting order here instead of old version
     if (remainingQty > 0) {
