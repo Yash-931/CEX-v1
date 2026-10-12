@@ -3,9 +3,16 @@ export interface OrderLevel {
   price: number;
 }
 
+export interface RestingOrder {
+  orderId: string,
+  price: number
+  userId: string,
+  qty: number
+}
+
 export interface BookSides {
-  bidsMap: Map<number, number>; //price -> qty for quick insert/delete
-  asksMap: Map<number, number>;
+  bidsMap: Map<number, RestingOrder[]>; //price -> qty for quick insert/delete
+  asksMap: Map<number, RestingOrder[]>;
 
   sortedBids: number[];
   sortedAsks: number[];
